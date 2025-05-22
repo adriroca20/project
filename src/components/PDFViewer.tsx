@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { usePDF } from '../context/PDFContext';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import Annotation from './Annotation';
 
 // Set the workerSrc
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -17,11 +18,13 @@ const PDFViewer: React.FC = () => {
     scale,
     annotations,
     signatures,
+    mode,
   } = usePDF();
   
   const [pageWidth, setPageWidth] = useState(0);
   const [pageHeight, setPageHeight] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<number | null>(null);
 
   const handleDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setTotalPages(numPages);
@@ -33,10 +36,23 @@ const PDFViewer: React.FC = () => {
     setPageHeight(page.height);
   };
 
+  const handleSelectAnnotation = (index: number) => {
+    setSelectedAnnotation(index === selectedAnnotation ? null : index);
+  };
+
+  const handleClickOutside = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && mode !== 'view') {
+      setSelectedAnnotation(null);
+    }
+  };
+
   if (!file) return null;
 
   return (
-    <div className="flex-grow flex flex-col items-center justify-start overflow-auto bg-gray-100 p-4">
+    <div 
+      className="flex-grow flex flex-col items-center justify-start overflow-auto bg-gray-100 p-4"
+      onClick={handleClickOutside}
+    >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
           <div className="text-center">
@@ -62,30 +78,20 @@ const PDFViewer: React.FC = () => {
           />
 
           {/* Render annotations */}
-          <div className="absolute top-0 left-0" style={{ pointerEvents: 'none' }}>
+          <div className="absolute top-0 left-0">
             {annotations
               .filter(annotation => annotation.page === currentPage)
               .map((annotation, index) => (
-                <div
+                <Annotation
                   key={`annotation-${index}`}
-                  className="absolute"
-                  style={{
-                    top: `${annotation.y * scale}px`,
-                    left: `${annotation.x * scale}px`,
-                    transform: 'translate(-50%, -50%)',
-                    pointerEvents: 'all',
-                  }}
-                >
-                  <div 
-                    className="bg-yellow-100 p-2 rounded shadow-sm text-sm"
-                    style={{ 
-                      width: `${annotation.width * scale}px`,
-                      maxWidth: `${pageWidth * scale * 0.4}px`
-                    }}
-                  >
-                    {annotation.text}
-                  </div>
-                </div>
+                  annotation={annotation}
+                  index={index}
+                  scale={scale}
+                  pageWidth={pageWidth}
+                  isViewOnly={mode === 'view'}
+                  onSelect={mode !== 'view' ? handleSelectAnnotation : undefined}
+                  selectedIndex={selectedAnnotation}
+                />
               ))}
           </div>
 
