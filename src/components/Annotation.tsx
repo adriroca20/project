@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
-import { usePDF } from '../context/PDFContext';
-import Draggable from 'react-draggable';
+import React, { useState, useRef, useEffect } from "react";
+import { Trash2 } from "lucide-react";
+import { usePDF } from "../context/PDFContext";
+import Draggable from "react-draggable";
 
 interface AnnotationProps {
   annotation: any;
@@ -13,21 +13,28 @@ interface AnnotationProps {
   selectedIndex?: number | null;
 }
 
-const Annotation: React.FC<AnnotationProps> = ({ 
-  annotation, 
-  index, 
-  scale, 
+const Annotation: React.FC<AnnotationProps> = ({
+  annotation,
+  index,
+  scale,
   pageWidth,
   onSelect,
   selectedIndex,
-  isViewOnly = false
+  isViewOnly = false,
 }) => {
   const { removeAnnotation, updateAnnotation } = usePDF();
   const [isDragging, setIsDragging] = useState(false);
   const nodeRef = useRef(null);
-  
+
   // Determinar si esta anotación está seleccionada
   const isSelected = selectedIndex === index;
+
+  // Monitorear cambios en la selección
+  useEffect(() => {
+    console.log(
+      `Anotación ${index}: isSelected=${isSelected}, selectedIndex=${selectedIndex}`
+    );
+  }, [isSelected, selectedIndex, index]);
 
   // Manejar el inicio del arrastre
   const handleStart = () => {
@@ -39,40 +46,31 @@ const Annotation: React.FC<AnnotationProps> = ({
   // Manejar el fin del arrastre
   const handleStop = (_e: any, data: any) => {
     setIsDragging(false);
-    
+
     // Convertir posición de píxeles a unidades del PDF
     const newX = annotation.x + data.x / scale;
     const newY = annotation.y + data.y / scale;
-    
+
     // Actualizar la posición en el contexto
     updateAnnotation(index, {
       ...annotation,
       x: newX,
-      y: newY
+      y: newY,
     });
   };
 
   // Manejador de clic
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onSelect && !isViewOnly) onSelect(index);
+    if (onSelect && !isViewOnly) {
+      onSelect(index);
+    }
   };
 
   // Eliminar la anotación
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // Asegurarnos de que el evento no burbujee
-    if (e.nativeEvent) {
-      e.nativeEvent.stopImmediatePropagation();
-    }
-    
-    // Eliminar con un pequeño retraso para evitar conflictos con otros eventos
-    setTimeout(() => {
-      console.log(`Eliminando anotación ${index}`);
-      removeAnnotation(index);
-    }, 10);
+  const handleDelete = () => {
+    console.log("Eliminando anotación", index);
+    removeAnnotation(index);
   };
 
   // Renderizar botón de eliminación fuera del componente Draggable para evitar conflictos
@@ -82,7 +80,14 @@ const Annotation: React.FC<AnnotationProps> = ({
         <button
           onClick={handleDelete}
           className="absolute -top-3 -right-3 bg-white rounded-full p-1 shadow-sm hover:bg-red-50 text-red-600 z-[1000]"
-          style={{ pointerEvents: 'auto' }}
+          style={{
+            pointerEvents: "auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "24px",
+            height: "24px",
+          }}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -92,36 +97,41 @@ const Annotation: React.FC<AnnotationProps> = ({
   };
 
   return (
-    <div className="annotation-wrapper relative" style={{ position: 'absolute' }}>
-      {renderDeleteButton()}
+    <div
+      className="annotation-wrapper relative"
+      style={{ position: "absolute" }}
+    >
       <Draggable
         nodeRef={nodeRef}
         disabled={isViewOnly}
         onStart={handleStart}
         onStop={handleStop}
-        position={{x: 0, y: 0}} // Siempre reiniciar a 0,0 para evitar acumulación
+        position={{ x: 0, y: 0 }} // Siempre reiniciar a 0,0 para evitar acumulación
         scale={scale}
       >
         <div
           ref={nodeRef}
-          className={`absolute cursor-move ${isSelected ? 'ring-2 ring-primary-500' : ''}`}
+          className={`absolute cursor-move ${
+            isSelected ? "ring-2 ring-primary-500" : ""
+          }`}
           style={{
             top: `${annotation.y * scale}px`,
             left: `${annotation.x * scale}px`,
-            transform: 'translate(-50%, -50%)',
+            transform: "translate(-50%, -50%)",
             zIndex: isDragging ? 1000 : 10,
-            touchAction: 'none'
+            touchAction: "none",
           }}
           onClick={handleClick}
         >
-          <div 
+          <div
             className="bg-yellow-100 p-2 rounded shadow-sm text-sm group relative"
-            style={{ 
+            style={{
               width: `${annotation.width * scale}px`,
               maxWidth: `${pageWidth * scale * 0.4}px`,
-              userSelect: 'none'
+              userSelect: "none",
             }}
           >
+            {renderDeleteButton()}
             {annotation.text}
           </div>
         </div>
@@ -130,4 +140,4 @@ const Annotation: React.FC<AnnotationProps> = ({
   );
 };
 
-export default Annotation; 
+export default Annotation;

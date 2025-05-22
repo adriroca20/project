@@ -101,7 +101,6 @@ export const PDFProvider: React.FC<PDFProviderProps> = ({ children }) => {
 
   const addAnnotation = (annotation: any) => {
     const newAnnotations = [...annotations, annotation];
-    console.log('newAnnotations', newAnnotations);
     pushToHistory({
       annotations: newAnnotations,
       signatures: signatures,
@@ -120,6 +119,7 @@ export const PDFProvider: React.FC<PDFProviderProps> = ({ children }) => {
 
   const removeAnnotation = (index: number) => {
     const newAnnotations = annotations.filter((_, i) => i !== index);
+    console.log('newAnnotations', newAnnotations);
     pushToHistory({
       annotations: newAnnotations,
       signatures: signatures,
